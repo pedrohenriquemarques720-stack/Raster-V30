@@ -1,0 +1,1721 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>Rasther V29 - Web App</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        :root {
+            --primary: #3b82f6;
+            --primary-dark: #2563eb;
+            --secondary: #8b5cf6;
+            --bg-dark: #0f172a;
+            --bg-card: #1e293b;
+            --bg-light: #2d3a4f;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --border: #334155;
+            --success: #4ade80;
+            --error: #f87171;
+            --warning: #fbbf24;
+        }
+
+        body {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        /* Container Principal */
+        .webapp-container {
+            max-width: 1200px;
+            width: 100%;
+            min-height: 800px;
+            background: var(--bg-dark);
+            border-radius: 40px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            overflow: hidden;
+            border: 1px solid var(--border);
+            display: grid;
+            grid-template-columns: 280px 1fr;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            background: #0a0f1c;
+            border-right: 1px solid var(--border);
+            padding: 30px 20px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .logo-area {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 40px;
+            padding: 0 10px;
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 20px;
+        }
+
+        .logo-text h2 {
+            color: var(--text-primary);
+            font-size: 18px;
+            font-weight: 700;
+        }
+
+        .logo-text p {
+            color: var(--text-secondary);
+            font-size: 12px;
+        }
+
+        .nav-menu {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            border-radius: 14px;
+            color: var(--text-secondary);
+            transition: all 0.3s;
+            cursor: pointer;
+            font-weight: 500;
+        }
+
+        .nav-item i {
+            width: 24px;
+            font-size: 18px;
+        }
+
+        .nav-item:hover {
+            background: var(--bg-card);
+            color: var(--text-primary);
+        }
+
+        .nav-item.active {
+            background: var(--primary);
+            color: white;
+        }
+
+        .nav-item.active:hover {
+            background: var(--primary-dark);
+        }
+
+        .device-status-sidebar {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 16px;
+            margin-top: 20px;
+            border: 1px solid var(--border);
+        }
+
+        .status-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            font-size: 13px;
+        }
+
+        .status-label {
+            color: var(--text-secondary);
+        }
+
+        .status-value {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        .connection-badge {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 30px;
+            font-size: 12px;
+            font-weight: 600;
+            width: fit-content;
+        }
+
+        .connected {
+            background: rgba(74, 222, 128, 0.1);
+            color: var(--success);
+        }
+
+        .disconnected {
+            background: rgba(248, 113, 113, 0.1);
+            color: var(--error);
+        }
+
+        /* Main Content */
+        .main-content {
+            padding: 30px;
+            overflow-y: auto;
+            max-height: 800px;
+        }
+
+        /* Header */
+        .content-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        .page-title h1 {
+            color: var(--text-primary);
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .page-title p {
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        .user-area {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .notification {
+            position: relative;
+            color: var(--text-secondary);
+            font-size: 20px;
+            cursor: pointer;
+        }
+
+        .notification-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            width: 18px;
+            height: 18px;
+            background: var(--error);
+            color: white;
+            border-radius: 50%;
+            font-size: 11px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .user-profile {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: var(--bg-card);
+            padding: 8px 16px;
+            border-radius: 40px;
+            border: 1px solid var(--border);
+        }
+
+        .user-avatar {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+        }
+
+        .user-info h4 {
+            color: var(--text-primary);
+            font-size: 14px;
+        }
+
+        .user-info p {
+            color: var(--text-secondary);
+            font-size: 12px;
+        }
+
+        /* Cards Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: var(--bg-card);
+            border-radius: 20px;
+            padding: 20px;
+            border: 1px solid var(--border);
+            transition: transform 0.3s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .stat-icon {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 24px;
+            margin-bottom: 16px;
+        }
+
+        .stat-label {
+            color: var(--text-secondary);
+            font-size: 13px;
+            margin-bottom: 4px;
+        }
+
+        .stat-value {
+            color: var(--text-primary);
+            font-size: 24px;
+            font-weight: 700;
+        }
+
+        .stat-trend {
+            color: var(--success);
+            font-size: 12px;
+            margin-top: 8px;
+        }
+
+        /* Dashboard Grid */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .card {
+            background: var(--bg-card);
+            border-radius: 24px;
+            padding: 24px;
+            border: 1px solid var(--border);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .card-header h3 {
+            color: var(--text-primary);
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .card-header i {
+            color: var(--primary);
+            font-size: 20px;
+        }
+
+        /* Device Info */
+        .device-info-list {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .info-item:last-child {
+            border-bottom: none;
+        }
+
+        .info-label {
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .info-value {
+            color: var(--text-primary);
+            font-weight: 600;
+            background: #0f172a;
+            padding: 6px 16px;
+            border-radius: 30px;
+            font-size: 14px;
+        }
+
+        /* Progress Bar */
+        .progress-card {
+            margin-top: 20px;
+        }
+
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            color: var(--text-secondary);
+            font-size: 13px;
+            margin-bottom: 8px;
+        }
+
+        .progress-bar {
+            height: 10px;
+            background: #0f172a;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            border-radius: 10px;
+            transition: width 0.3s ease;
+        }
+
+        /* Log Container */
+        .log-container {
+            background: #0f172a;
+            border-radius: 16px;
+            padding: 16px;
+            max-height: 250px;
+            overflow-y: auto;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            border: 1px solid var(--border);
+        }
+
+        .log-entry {
+            padding: 8px 0;
+            border-bottom: 1px solid #1e293b;
+            display: flex;
+            gap: 12px;
+        }
+
+        .log-time {
+            color: #64748b;
+            min-width: 45px;
+        }
+
+        .log-error { color: var(--error); }
+        .log-success { color: var(--success); }
+        .log-warning { color: var(--warning); }
+
+        /* Buttons */
+        .btn {
+            border: none;
+            padding: 12px 24px;
+            border-radius: 14px;
+            font-weight: 600;
+            font-size: 14px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+        }
+
+        .btn-secondary {
+            background: #0f172a;
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            background: #1e293b;
+        }
+
+        .btn-large {
+            width: 100%;
+            padding: 16px;
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 24px;
+            background: #0f172a;
+            padding: 6px;
+            border-radius: 40px;
+            border: 1px solid var(--border);
+        }
+
+        .tab {
+            flex: 1;
+            padding: 12px;
+            text-align: center;
+            color: var(--text-secondary);
+            font-weight: 600;
+            border-radius: 34px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .tab.active {
+            background: var(--primary);
+            color: white;
+        }
+
+        /* License Badge */
+        .license-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 16px;
+            border-radius: 30px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .license-active {
+            background: rgba(74, 222, 128, 0.1);
+            color: var(--success);
+        }
+
+        .license-inactive {
+            background: rgba(248, 113, 113, 0.1);
+            color: var(--error);
+        }
+
+        /* QR Scanner */
+        .qr-section {
+            background: #0f172a;
+            border-radius: 20px;
+            padding: 30px;
+            text-align: center;
+            border: 2px dashed var(--primary);
+            margin-bottom: 20px;
+        }
+
+        .qr-placeholder {
+            width: 200px;
+            height: 200px;
+            background: var(--bg-card);
+            margin: 0 auto 20px;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--primary);
+            font-size: 64px;
+            border: 2px solid var(--border);
+        }
+
+        .qr-input {
+            width: 100%;
+            padding: 16px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            color: var(--text-primary);
+            font-size: 15px;
+            margin-bottom: 16px;
+        }
+
+        .qr-input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        /* Firmware Table */
+        .firmware-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .firmware-table th {
+            text-align: left;
+            padding: 12px;
+            color: var(--text-secondary);
+            font-weight: 500;
+            font-size: 13px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .firmware-table td {
+            padding: 16px 12px;
+            color: var(--text-primary);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .firmware-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .version-tag {
+            background: var(--primary);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .status-tag {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .status-updated {
+            background: rgba(74, 222, 128, 0.1);
+            color: var(--success);
+        }
+
+        .status-pending {
+            background: rgba(251, 191, 36, 0.1);
+            color: var(--warning);
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--bg-card);
+            border-radius: 32px;
+            padding: 30px;
+            max-width: 500px;
+            width: 90%;
+            border: 1px solid var(--border);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-header h2 {
+            color: var(--text-primary);
+        }
+
+        .close-modal {
+            color: var(--text-secondary);
+            font-size: 24px;
+            cursor: pointer;
+        }
+
+        /* Animations */
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .spinner {
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+
+        /* Responsive */
+        @media (max-width: 900px) {
+            .webapp-container {
+                grid-template-columns: 1fr;
+            }
+            
+            .sidebar {
+                display: none;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="webapp-container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="logo-area">
+                <div class="logo-icon">
+                    <i class="fas fa-microchip"></i>
+                </div>
+                <div class="logo-text">
+                    <h2>Rasther V29</h2>
+                    <p>Gestor Profissional</p>
+                </div>
+            </div>
+
+            <div class="nav-menu">
+                <div class="nav-item active" onclick="navigateTo('dashboard')">
+                    <i class="fas fa-home"></i>
+                    <span>Dashboard</span>
+                </div>
+                <div class="nav-item" onclick="navigateTo('devices')">
+                    <i class="fas fa-usb"></i>
+                    <span>Dispositivos</span>
+                </div>
+                <div class="nav-item" onclick="navigateTo('updates')">
+                    <i class="fas fa-sync-alt"></i>
+                    <span>Atualizações</span>
+                </div>
+                <div class="nav-item" onclick="navigateTo('license')">
+                    <i class="fas fa-qrcode"></i>
+                    <span>Licenciamento</span>
+                </div>
+                <div class="nav-item" onclick="navigateTo('history')">
+                    <i class="fas fa-history"></i>
+                    <span>Histórico</span>
+                </div>
+                <div class="nav-item" onclick="navigateTo('support')">
+                    <i class="fas fa-headset"></i>
+                    <span>Suporte</span>
+                </div>
+                <div class="nav-item" onclick="navigateTo('settings')">
+                    <i class="fas fa-cog"></i>
+                    <span>Configurações</span>
+                </div>
+            </div>
+
+            <div class="device-status-sidebar">
+                <div class="status-row">
+                    <span class="status-label">Status USB</span>
+                    <span class="connection-badge disconnected" id="sidebarConnection">
+                        <i class="fas fa-circle"></i> Desconectado
+                    </span>
+                </div>
+                <div class="status-row">
+                    <span class="status-label">Dispositivo</span>
+                    <span class="status-value" id="sidebarDevice">---</span>
+                </div>
+                <div class="status-row">
+                    <span class="status-label">Versão</span>
+                    <span class="status-value" id="sidebarVersion">v2.1.3</span>
+                </div>
+                <div class="status-row">
+                    <span class="status-label">Licença</span>
+                    <span class="status-value license-active" id="sidebarLicense">
+                        <i class="fas fa-check-circle"></i> Ativa
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content Area -->
+        <div class="main-content" id="mainContent">
+            <!-- Header -->
+            <div class="content-header">
+                <div class="page-title">
+                    <h1 id="pageTitle">Dashboard</h1>
+                    <p id="pageSubtitle">Visão geral do sistema V29</p>
+                </div>
+                <div class="user-area">
+                    <div class="notification">
+                        <i class="fas fa-bell"></i>
+                        <span class="notification-badge">3</span>
+                    </div>
+                    <div class="user-profile">
+                        <div class="user-avatar">TS</div>
+                        <div class="user-info">
+                            <h4>Tech Support</h4>
+                            <p>admin@rasther.com</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dynamic Content Pages -->
+            <div id="dashboardPage">
+                <!-- Stats Grid -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-usb"></i>
+                        </div>
+                        <div class="stat-label">Dispositivos Conectados</div>
+                        <div class="stat-value" id="connectedDevices">0</div>
+                        <div class="stat-trend">
+                            <i class="fas fa-arrow-up"></i> Aguardando conexão
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-code-branch"></i>
+                        </div>
+                        <div class="stat-label">Firmware Atual</div>
+                        <div class="stat-value">v2.1.3</div>
+                        <div class="stat-trend">
+                            <i class="fas fa-check-circle" style="color: var(--success);"></i> Atualizado
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-cloud-download-alt"></i>
+                        </div>
+                        <div class="stat-label">Nova Versão</div>
+                        <div class="stat-value">v2.1.5</div>
+                        <div class="stat-trend">
+                            <i class="fas fa-exclamation-circle" style="color: var(--warning);"></i> Disponível
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Dashboard Grid -->
+                <div class="dashboard-grid">
+                    <!-- Device Info Card -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h3><i class="fas fa-microchip"></i> Informações do Scanner</h3>
+                            <i class="fas fa-ellipsis-h"></i>
+                        </div>
+                        <div class="device-info-list">
+                            <div class="info-item">
+                                <span class="info-label"><i class="fas fa-barcode"></i> Número de Série</span>
+                                <span class="info-value" id="deviceSerial">RH-29-2024-1234</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label"><i class="fas fa-tag"></i> Modelo</span>
+                                <span class="info-value">Rasther V29 Pro</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label"><i class="fas fa-calendar"></i> Última Atualização</span>
+                                <span class="info-value">13/01/2024</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label"><i class="fas fa-shield-alt"></i> Licença</span>
+                                <span class="license-badge license-active" id="dashboardLicense">
+                                    <i class="fas fa-check-circle"></i> Premium Ativa
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Quick Actions Card -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h3><i class="fas fa-bolt"></i> Ações Rápidas</h3>
+                            <i class="fas fa-ellipsis-h"></i>
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 12px;">
+                            <button class="btn btn-primary btn-large" onclick="checkForUpdates()">
+                                <i class="fas fa-search"></i> Verificar Atualizações
+                            </button>
+                            <button class="btn btn-secondary btn-large" onclick="simulateConnection()">
+                                <i class="fas fa-plug"></i> Simular Conexão USB
+                            </button>
+                            <button class="btn btn-secondary btn-large" onclick="openScanModal()">
+                                <i class="fas fa-qrcode"></i> Escanear QR Code
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Progress Card -->
+                    <div class="card" style="grid-column: span 2;">
+                        <div class="card-header">
+                            <h3><i class="fas fa-tachometer-alt"></i> Atividade Recente</h3>
+                            <i class="fas fa-ellipsis-h"></i>
+                        </div>
+                        <div class="log-container" id="dashboardLog">
+                            <div class="log-entry">
+                                <span class="log-time">09:41</span>
+                                <span class="log-success">✅ Sistema iniciado com sucesso</span>
+                            </div>
+                            <div class="log-entry">
+                                <span class="log-time">09:41</span>
+                                <span>🔌 Aguardando conexão USB...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Devices Page -->
+            <div id="devicesPage" style="display: none;">
+                <div class="tabs">
+                    <div class="tab active" onclick="showDeviceTab('connected')">Conectados</div>
+                    <div class="tab" onclick="showDeviceTab('paired')">Pareados</div>
+                    <div class="tab" onclick="showDeviceTab('available')">Disponíveis</div>
+                </div>
+
+                <div class="card">
+                    <table class="firmware-table">
+                        <thead>
+                            <tr>
+                                <th>Dispositivo</th>
+                                <th>Status</th>
+                                <th>Versão</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>
+                                    <div style="display: flex; align-items: center; gap: 12px;">
+                                        <i class="fas fa-usb" style="color: var(--primary);"></i>
+                                        <div>
+                                            <strong>Rasther V29 Pro</strong><br>
+                                            <small style="color: var(--text-secondary);">SN: RH-29-2024-1234</small>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="connection-badge connected">
+                                        <i class="fas fa-circle"></i> Conectado
+                                    </span>
+                                </td>
+                                <td><span class="version-tag">v2.1.3</span></td>
+                                <td>
+                                    <button class="btn btn-primary" style="padding: 8px 16px;" onclick="navigateTo('updates')">
+                                        <i class="fas fa-sync-alt"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <div style="display: flex; align-items: center; gap: 12px;">
+                                        <i class="fas fa-bluetooth" style="color: var(--text-secondary);"></i>
+                                        <div>
+                                            <strong>Rasther V29 Lite</strong><br>
+                                            <small style="color: var(--text-secondary);">SN: RH-29-2024-5678</small>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="connection-badge disconnected">
+                                        <i class="fas fa-circle"></i> Desconectado
+                                    </span>
+                                </td>
+                                <td><span class="version-tag">v2.0.9</span></td>
+                                <td>
+                                    <button class="btn btn-secondary" style="padding: 8px 16px;" disabled>
+                                        <i class="fas fa-sync-alt"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Updates Page -->
+            <div id="updatesPage" style="display: none;">
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-cloud-download-alt"></i> Firmware Disponível</h3>
+                        <span class="version-tag">v2.1.5</span>
+                    </div>
+                    
+                    <div style="background: #0f172a; border-radius: 16px; padding: 20px; margin: 20px 0;">
+                        <h4 style="color: var(--text-primary); margin-bottom: 16px;">📋 Novidades da Versão</h4>
+                        <ul style="color: var(--text-secondary); list-style: none;">
+                            <li style="margin-bottom: 12px;">✓ Correção de bugs no protocolo CAN</li>
+                            <li style="margin-bottom: 12px;">✓ Melhorias na estabilidade Bluetooth</li>
+                            <li style="margin-bottom: 12px;">✓ Novos protocolos para veículos 2024</li>
+                            <li style="margin-bottom: 12px;">✓ Otimização do consumo de bateria</li>
+                            <li>✓ Suporte a diagnóstico avançado</li>
+                        </ul>
+                    </div>
+
+                    <div class="progress-card" id="updateProgress" style="display: none;">
+                        <div class="progress-header">
+                            <span>Progresso da Atualização</span>
+                            <span id="progressPercentage">0%</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="progressBar" style="width: 0%;"></div>
+                        </div>
+                        <p style="color: var(--text-secondary); font-size: 13px; margin-top: 12px; text-align: center;" id="progressStatus">Iniciando...</p>
+                    </div>
+
+                    <div style="display: flex; gap: 12px; margin-top: 20px;">
+                        <button class="btn btn-primary" style="flex: 2;" onclick="startUpdate()" id="updateBtn">
+                            <i class="fas fa-download"></i> Baixar e Instalar
+                        </button>
+                        <button class="btn btn-secondary" style="flex: 1;" onclick="showChecksumModal()">
+                            <i class="fas fa-shield-alt"></i> Verificar
+                        </button>
+                    </div>
+                </div>
+
+                <div class="card" style="margin-top: 20px;">
+                    <div class="card-header">
+                        <h3><i class="fas fa-history"></i> Histórico de Atualizações</h3>
+                    </div>
+                    <table class="firmware-table">
+                        <thead>
+                            <tr>
+                                <th>Versão</th>
+                                <th>Data</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>v2.1.3</td>
+                                <td>13/01/2024</td>
+                                <td><span class="status-tag status-updated">Instalado</span></td>
+                            </tr>
+                            <tr>
+                                <td>v2.0.9</td>
+                                <td>20/12/2023</td>
+                                <td><span class="status-tag status-updated">Instalado</span></td>
+                            </tr>
+                            <tr>
+                                <td>v2.0.5</td>
+                                <td>05/12/2023</td>
+                                <td><span class="status-tag status-updated">Instalado</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- License Page -->
+            <div id="licensePage" style="display: none;">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-key"></i>
+                        </div>
+                        <div class="stat-label">Status Licença</div>
+                        <div class="stat-value" style="color: var(--success);">Ativa</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-calendar-alt"></i>
+                        </div>
+                        <div class="stat-label">Expira em</div>
+                        <div class="stat-value">31/12/2025</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-layer-group"></i>
+                        </div>
+                        <div class="stat-label">Tipo</div>
+                        <div class="stat-value">Premium</div>
+                    </div>
+                </div>
+
+                <div class="dashboard-grid">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3><i class="fas fa-qrcode"></i> Leitor de QR Code</h3>
+                        </div>
+                        <div class="qr-section">
+                            <div class="qr-placeholder" id="qrAnimation">
+                                <i class="fas fa-qrcode"></i>
+                            </div>
+                            <input type="text" class="qr-input" placeholder="Digite o número de série" id="serialInput" value="RH-29-2024-1234">
+                            <button class="btn btn-primary btn-large" onclick="validateLicense()">
+                                <i class="fas fa-check-circle"></i> Validar Licença
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h3><i class="fas fa-info-circle"></i> Detalhes da Licença</h3>
+                        </div>
+                        <div class="device-info-list">
+                            <div class="info-item">
+                                <span class="info-label"><i class="fas fa-barcode"></i> Serial</span>
+                                <span class="info-value" id="licenseSerial">RH-29-2024-1234</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label"><i class="fas fa-tag"></i> Produto</span>
+                                <span class="info-value">V29 Professional</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label"><i class="fas fa-calendar-check"></i> Ativada em</span>
+                                <span class="info-value">15/01/2024</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label"><i class="fas fa-clock"></i> Expiração</span>
+                                <span class="info-value">31/12/2025</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label"><i class="fas fa-crown"></i> Features</span>
+                                <span class="info-value">
+                                    <i class="fas fa-check-circle" style="color: var(--success);"></i> Updates
+                                    <i class="fas fa-check-circle" style="color: var(--success); margin-left: 8px;"></i> Premium
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- History Page -->
+            <div id="historyPage" style="display: none;">
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-history"></i> Histórico de Operações</h3>
+                        <button class="btn btn-secondary" onclick="clearLogs()">
+                            <i class="fas fa-trash"></i> Limpar
+                        </button>
+                    </div>
+                    <div class="log-container" id="historyLog" style="max-height: 500px;">
+                        <div class="log-entry">
+                            <span class="log-time">09:41</span>
+                            <span class="log-success">✅ Atualização de firmware v2.1.5 concluída</span>
+                        </div>
+                        <div class="log-entry">
+                            <span class="log-time">09:40</span>
+                            <span>📥 Download do firmware: 5.2 MB</span>
+                        </div>
+                        <div class="log-entry">
+                            <span class="log-time">09:38</span>
+                            <span class="log-success">✅ Checksum verificado: SHA256 OK</span>
+                        </div>
+                        <div class="log-entry">
+                            <span class="log-time">09:35</span>
+                            <span class="log-success">✅ Licença validada com sucesso</span>
+                        </div>
+                        <div class="log-entry">
+                            <span class="log-time">09:30</span>
+                            <span>🔌 Dispositivo conectado: Rasther V29</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Support Page -->
+            <div id="supportPage" style="display: none;">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-headset"></i>
+                        </div>
+                        <div class="stat-label">Suporte Técnico</div>
+                        <div class="stat-value">24/7</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-ticket-alt"></i>
+                        </div>
+                        <div class="stat-label">Chamados Abertos</div>
+                        <div class="stat-value">2</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-clock"></i>
+                        </div>
+                        <div class="stat-label">Tempo Médio</div>
+                        <div class="stat-value">15min</div>
+                    </div>
+                </div>
+
+                <div class="dashboard-grid">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3><i class="fas fa-envelope"></i> Contato</h3>
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 16px;">
+                            <div style="display: flex; align-items: center; gap: 12px; padding: 12px; background: #0f172a; border-radius: 12px;">
+                                <i class="fas fa-phone" style="color: var(--primary);"></i>
+                                <div>
+                                    <strong style="color: var(--text-primary);">0800 123 4567</strong><br>
+                                    <small style="color: var(--text-secondary);">Seg - Sex, 8h às 18h</small>
+                                </div>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 12px; padding: 12px; background: #0f172a; border-radius: 12px;">
+                                <i class="fas fa-whatsapp" style="color: #25D366;"></i>
+                                <div>
+                                    <strong style="color: var(--text-primary);">(11) 98765-4321</strong><br>
+                                    <small style="color: var(--text-secondary);">WhatsApp 24h</small>
+                                </div>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 12px; padding: 12px; background: #0f172a; border-radius: 12px;">
+                                <i class="fas fa-envelope" style="color: var(--primary);"></i>
+                                <div>
+                                    <strong style="color: var(--text-primary);">suporte@rasther.com</strong><br>
+                                    <small style="color: var(--text-secondary);">Resposta em até 2h</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h3><i class="fas fa-question-circle"></i> FAQ</h3>
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 12px;">
+                            <details style="background: #0f172a; padding: 12px; border-radius: 12px;">
+                                <summary style="color: var(--text-primary); font-weight: 600;">Como atualizar o firmware?</summary>
+                                <p style="color: var(--text-secondary); margin-top: 8px;">Conecte o scanner via USB, vá até a aba Atualizações e clique em "Baixar e Instalar".</p>
+                            </details>
+                            <details style="background: #0f172a; padding: 12px; border-radius: 12px;">
+                                <summary style="color: var(--text-primary); font-weight: 600;">O que fazer se a atualização falhar?</summary>
+                                <p style="color: var(--text-secondary); margin-top: 8px;">Verifique o cabo USB, reinicie o scanner e tente novamente. Se persistir, contate o suporte.</p>
+                            </details>
+                            <details style="background: #0f172a; padding: 12px; border-radius: 12px;">
+                                <summary style="color: var(--text-primary); font-weight: 600;">Como renovar minha licença?</summary>
+                                <p style="color: var(--text-secondary); margin-top: 8px;">Acesse o portal do cliente em license.rasther.com ou escaneie o QR Code do seu scanner.</p>
+                            </details>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Settings Page -->
+            <div id="settingsPage" style="display: none;">
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-sliders-h"></i> Preferências</h3>
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 20px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: #0f172a; border-radius: 12px;">
+                            <div>
+                                <strong style="color: var(--text-primary);">Notificações</strong><br>
+                                <small style="color: var(--text-secondary);">Alertas de novas versões</small>
+                            </div>
+                            <label class="switch">
+                                <input type="checkbox" checked id="notificationsToggle">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: #0f172a; border-radius: 12px;">
+                            <div>
+                                <strong style="color: var(--text-primary);">Download Automático</strong><br>
+                                <small style="color: var(--text-secondary);">Baixar firmwares em segundo plano</small>
+                            </div>
+                            <label class="switch">
+                                <input type="checkbox" id="autoDownloadToggle">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: #0f172a; border-radius: 12px;">
+                            <div>
+                                <strong style="color: var(--text-primary);">Modo Escuro</strong><br>
+                                <small style="color: var(--text-secondary);">Tema do aplicativo</small>
+                            </div>
+                            <label class="switch">
+                                <input type="checkbox" checked id="darkModeToggle">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card" style="margin-top: 20px;">
+                    <div class="card-header">
+                        <h3><i class="fas fa-database"></i> Armazenamento</h3>
+                    </div>
+                    <div style="margin-bottom: 16px;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                            <span style="color: var(--text-secondary);">Cache de Firmwares</span>
+                            <span style="color: var(--text-primary);">245 MB</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 45%;"></div>
+                        </div>
+                    </div>
+                    <button class="btn btn-secondary" onclick="clearCache()">
+                        <i class="fas fa-trash"></i> Limpar Cache
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: QR Code Scanner -->
+    <div class="modal" id="scanModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fas fa-qrcode"></i> Escanear QR Code</h2>
+                <span class="close-modal" onclick="closeModal('scanModal')">&times;</span>
+            </div>
+            <div class="qr-section" style="border: none; padding: 0;">
+                <div class="qr-placeholder" style="width: 100%; height: 250px;">
+                    <i class="fas fa-camera"></i>
+                </div>
+                <p style="color: var(--text-secondary); margin: 20px 0;">
+            .        Aponte a câmera para o QR Code do scanner
+                </p>
+                <button class="btn btn-primary btn-large" onclick="simulateScan()">
+                    <i class="fas fa-camera"></i> Simular Escaneamento
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Checksum Verification -->
+    <div class="modal" id="checksumModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fas fa-shield-alt"></i> Verificação de Integridade</h2>
+                <span class="close-modal" onclick="closeModal('checksumModal')">&times;</span>
+            </div>
+            <div style="background: #0f172a; border-radius: 12px; padding: 20px; margin: 20px 0;">
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+                    <i class="fas fa-check-circle" style="color: var(--success); font-size: 24px;"></i>
+                    <div>
+                        <strong style="color: var(--text-primary);">Arquivo verificado</strong><br>
+                        <small style="color: var(--text-secondary);">SHA-256: a1b2c3d4e5f6g7h8i9j0...</small>
+                    </div>
+                </div>
+                <div style="display: flex; justify-content: space-between; color: var(--text-secondary); font-size: 13px;">
+                    <span>Tamanho: 5.24 MB</span>
+                    <span>Íntegro: Sim</span>
+                </div>
+            </div>
+            <button class="btn btn-primary btn-large" onclick="closeModal('checksumModal')">
+                OK
+            </button>
+        </div>
+    </div>
+
+    <!-- Modal: Update Progress Detail -->
+    <div class="modal" id="updateDetailModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fas fa-sync-alt spinner"></i> Atualização em Andamento</h2>
+                <span class="close-modal" onclick="closeModal('updateDetailModal')">&times;</span>
+            </div>
+            <div class="progress-card" style="margin: 20px 0;">
+                <div class="progress-header">
+                    <span>Download</span>
+                    <span>45%</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: 45%;"></div>
+                </div>
+            </div>
+            <div class="log-container" style="max-height: 200px;">
+                <div class="log-entry">
+                    <span class="log-time">09:41</span>
+                    <span>📥 Baixando firmware...</span>
+                </div>
+                <div class="log-entry">
+                    <span class="log-time">09:42</span>
+                    <span>✅ 2.3 MB / 5.2 MB</span>
+                </div>
+                <div class="log-entry">
+                    <span class="log-time">09:42</span>
+                    <span>🔒 Verificando checksum...</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        /* Toggle Switch */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 52px;
+            height: 26px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #334155;
+            transition: .3s;
+            border-radius: 34px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 20px;
+            width: 20px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .3s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: var(--primary);
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+    </style>
+
+    <script>
+        // State management
+        let currentPage = 'dashboard';
+        let isConnected = false;
+        let updateInProgress = false;
+        let progressInterval;
+        let serialNumber = 'RH-29-2024-1234';
+        let licenseActive = true;
+
+        // Navigation
+        function navigateTo(page) {
+            currentPage = page;
+            
+            // Update sidebar
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            event.currentTarget.classList.add('active');
+            
+            // Hide all pages
+            document.querySelectorAll('[id$="Page"]').forEach(p => {
+                p.style.display = 'none';
+            });
+            
+            // Show selected page
+            document.getElementById(`${page}Page`).style.display = 'block';
+            
+            // Update header
+            const titles = {
+                'dashboard': { title: 'Dashboard', subtitle: 'Visão geral do sistema V29' },
+                'devices': { title: 'Dispositivos', subtitle: 'Gerenciar scanners conectados' },
+                'updates': { title: 'Atualizações', subtitle: 'Gerenciar firmware do dispositivo' },
+                'license': { title: 'Licenciamento', subtitle: 'Gerenciar licenças V29' },
+                'history': { title: 'Histórico', subtitle: 'Registro de operações' },
+                'support': { title: 'Suporte Técnico', subtitle: 'Central de ajuda' },
+                'settings': { title: 'Configurações', subtitle: 'Preferências do sistema' }
+            };
+            
+            document.getElementById('pageTitle').textContent = titles[page].title;
+            document.getElementById('pageSubtitle').textContent = titles[page].subtitle;
+            
+            addLog('dashboardLog', `📱 Navegou para: ${titles[page].title}`);
+        }
+
+        // Device tabs
+        function showDeviceTab(tab) {
+            document.querySelectorAll('#devicesPage .tab').forEach(t => {
+                t.classList.remove('active');
+            });
+            event.currentTarget.classList.add('active');
+            addLog('dashboardLog', `🔍 Mostrando dispositivos: ${tab}`);
+        }
+
+        // Simulate connection
+        function simulateConnection() {
+            isConnected = !isConnected;
+            
+            const connectionEl = document.getElementById('sidebarConnection');
+            const deviceEl = document.getElementById('sidebarDevice');
+            const connectedDevices = document.getElementById('connectedDevices');
+            
+            if (isConnected) {
+                connectionEl.className = 'connection-badge connected';
+                connectionEl.innerHTML = '<i class="fas fa-circle"></i> Conectado';
+                deviceEl.textContent = 'Rasther V29 Pro';
+                connectedDevices.textContent = '1';
+                addLog('dashboardLog', '✅ Scanner conectado via USB', 'success');
+                addLog('dashboardLog', '🔍 Vendor ID: 1234 | Product ID: 5678', 'info');
+            } else {
+                connectionEl.className = 'connection-badge disconnected';
+                connectionEl.innerHTML = '<i class="fas fa-circle"></i> Desconectado';
+                deviceEl.textContent = '---';
+                connectedDevices.textContent = '0';
+                addLog('dashboardLog', '⚠️ Scanner desconectado', 'warning');
+            }
+        }
+
+        // Check updates
+        function checkForUpdates() {
+            addLog('dashboardLog', '🔄 Verificando atualizações...', 'info');
+            
+            setTimeout(() => {
+                addLog('dashboardLog', '📦 Nova versão disponível: v2.1.5', 'success');
+                addLog('dashboardLog', '✨ Tamanho: 5.24 MB', 'info');
+                
+                // Show notification
+                document.querySelector('.notification-badge').textContent = '4';
+                
+                // Navigate to updates page
+                const navItem = document.querySelectorAll('.nav-item')[2];
+                navItem.click();
+            }, 2000);
+        }
+
+        // Start update
+        function startUpdate() {
+            if (!isConnected) {
+                alert('Conecte o scanner primeiro!');
+                addLog('dashboardLog', '❌ Erro: Scanner não conectado', 'error');
+                return;
+            }
+
+            if (updateInProgress) return;
+
+            updateInProgress = true;
+            const btn = document.getElementById('updateBtn');
+            const progressDiv = document.getElementById('updateProgress');
+            
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner spinner"></i> Atualizando...';
+            progressDiv.style.display = 'block';
+            
+            addLog('dashboardLog', '🚀 Iniciando atualização...', 'info');
+            
+            let progress = 0;
+            progressInterval = setInterval(() => {
+                progress += Math.random() * 15;
+                
+                if (progress >= 100) {
+                    progress = 100;
+                    clearInterval(progressInterval);
+                    
+                    document.getElementById('progressPercentage').textContent = '100%';
+                    document.getElementById('progressBar').style.width = '100%';
+                    document.getElementById('progressStatus').textContent = 'Atualização concluída!';
+                    
+                    addLog('dashboardLog', '✅ Firmware atualizado com sucesso!', 'success');
+                    addLog('dashboardLog', '🔄 Scanner reiniciado', 'info');
+                    
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-download"></i> Baixar e Instalar';
+                    document.getElementById('sidebarVersion').textContent = 'v2.1.5';
+                    
+                    setTimeout(() => {
+                        progressDiv.style.display = 'none';
+                        updateInProgress = false;
+                    }, 3000);
+                }
+                
+                document.getElementById('progressPercentage').textContent = `${Math.round(progress)}%`;
+                document.getElementById('progressBar').style.width = `${progress}%`;
+                
+                if (progress < 30) {
+                    document.getElementById('progressStatus').textContent = 'Baixando firmware...';
+                } else if (progress < 60) {
+                    document.getElementById('progressStatus').textContent = 'Transferindo dados...';
+                } else if (progress < 90) {
+                    document.getElementById('progressStatus').textContent = 'Verificando integridade...';
+                }
+            }, 300);
+        }
+
+        // Validate license
+        function validateLicense() {
+            const inputSerial = document.getElementById('serialInput').value;
+            
+            if (!inputSerial) {
+                alert('Digite ou escaneie o número de série');
+                return;
+            }
+            
+            addLog('dashboardLog', `🔑 Validando licença: ${inputSerial}...`, 'info');
+            
+            setTimeout(() => {
+                const isValid = inputSerial.length >= 10;
+                
+                if (isValid) {
+                    licenseActive = true;
+                    document.getElementById('sidebarLicense').className = 'status-value license-active';
+                    document.getElementById('sidebarLicense').innerHTML = '<i class="fas fa-check-circle"></i> Ativa';
+                    document.getElementById('dashboardLicense').className = 'license-badge license-active';
+                    document.getElementById('dashboardLicense').innerHTML = '<i class="fas fa-check-circle"></i> Premium Ativa';
+                    document.getElementById('licenseSerial').textContent = inputSerial;
+                    
+                    addLog('dashboardLog', '✅ Licença válida para V29 Premium', 'success');
+                    addLog('dashboardLog', '📅 Expira em: 31/12/2025', 'info');
+                } else {
+                    licenseActive = false;
+                    document.getElementById('sidebarLicense').className = 'status-value license-inactive';
+                    document.getElementById('sidebarLicense').innerHTML = '<i class="fas fa-times-circle"></i> Inativa';
+                    document.getElementById('dashboardLicense').className = 'license-badge license-inactive';
+                    document.getElementById('dashboardLicense').innerHTML = '<i class="fas fa-times-circle"></i> Licença Inválida';
+                    
+                    addLog('dashboardLog', '❌ Licença inválida', 'error');
+                }
+            }, 1500);
+        }
+
+        // Modals
+        function openScanModal() {
+            document.getElementById('scanModal').classList.add('active');
+        }
+
+        function showChecksumModal() {
+            document.getElementById('checksumModal').classList.add('active');
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('active');
+        }
+
+        function simulateScan() {
+            closeModal('scanModal');
+            document.getElementById('serialInput').value = 'RH-29-2024-SCANNED';
+            addLog('dashboardLog', '📷 QR Code escaneado com sucesso', 'success');
+            validateLicense();
+        }
+
+        // Logs
+        function addLog(logId, message, type = 'info') {
+            const logContainer = document.getElementById(logId);
+            if (!logContainer) return;
+            
+            const now = new Date();
+            const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+            
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            
+            const messageClass = type === 'error' ? 'log-error' : 
+                               type === 'success' ? 'log-success' : 
+                               type === 'warning' ? 'log-warning' : '';
+            
+            const icon = type === 'error' ? '❌' : 
+                        type === 'success' ? '✅' : 
+                        type === 'warning' ? '⚠️' : '📌';
+            
+            entry.innerHTML = `<span class="log-time">${timeStr}</span><span class="${messageClass}">${icon} ${message}</span>`;
+            
+            logContainer.appendChild(entry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+            
+            // Also add to history log
+            const historyLog = document.getElementById('historyLog');
+            if (historyLog && logId !== 'historyLog') {
+                const historyEntry = entry.cloneNode(true);
+                historyLog.appendChild(historyEntry);
+                historyLog.scrollTop = historyLog.scrollHeight;
+            }
+            
+            // Limit logs
+            if (logContainer.children.length > 20) {
+                logContainer.removeChild(logContainer.children[0]);
+            }
+        }
+
+        // Clear logs
+        function clearLogs() {
+            document.getElementById('historyLog').innerHTML = '';
+            addLog('historyLog', '🧹 Histórico limpo', 'info');
+        }
+
+        // Clear cache
+        function clearCache() {
+            addLog('dashboardLog', '🧹 Cache limpo com sucesso', 'success');
+            alert('Cache limpo!');
+        }
+
+        // Settings toggles
+        document.getElementById('notificationsToggle')?.addEventListener('change', (e) => {
+            addLog('dashboardLog', `🔔 Notificações ${e.target.checked ? 'ativadas' : 'desativadas'}`);
+        });
+
+        document.getElementById('darkModeToggle')?.addEventListener('change', (e) => {
+            if (!e.target.checked) {
+                alert('Modo claro não disponível na versão demo');
+                e.target.checked = true;
+            }
+        });
+
+        // QR Code animation
+        setInterval(() => {
+            const qrElement = document.getElementById('qrAnimation');
+            if (qrElement) {
+                qrElement.style.transform = 'scale(1.05)';
+                setTimeout(() => {
+                    qrElement.style.transform = 'scale(1)';
+                }, 200);
+            }
+        }, 3000);
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            addLog('dashboardLog', '🚀 Rasther V29 Web App iniciado', 'success');
+            addLog('dashboardLog', '🔌 Aguardando conexão USB...', 'info');
+        });
+    </script>
+</body>
+</html>
