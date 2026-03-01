@@ -6,10 +6,18 @@ import hashlib
 import time
 import random
 from datetime import datetime, timedelta
-import plotly.graph_objects as go
-import plotly.express as px
-from streamlit.components.v1 import html
 import base64
+
+# ============================================
+# VERIFICAÇÃO DE BIBLIOTECAS
+# ============================================
+try:
+    import plotly.graph_objects as go
+    import plotly.express as px
+    PLOTLY_AVAILABLE = True
+except ImportError:
+    PLOTLY_AVAILABLE = False
+    st.warning("⚠️ Plotly não disponível. Usando gráficos alternativos.")
 
 # ============================================
 # CONFIGURAÇÃO DA PÁGINA
@@ -220,6 +228,22 @@ def add_log(mensagem, tipo="info"):
     if len(st.session_state.logs) > 100:
         st.session_state.logs.pop()
 
+def create_bar_chart(data, labels, title):
+    """Cria gráfico de barras sem plotly"""
+    chart_data = pd.DataFrame({
+        'labels': labels,
+        'values': data
+    })
+    st.bar_chart(chart_data.set_index('labels'))
+
+def create_line_chart(dates, values, title):
+    """Cria gráfico de linhas sem plotly"""
+    chart_data = pd.DataFrame({
+        'date': dates,
+        'value': values
+    })
+    st.line_chart(chart_data.set_index('date'))
+
 # ============================================
 # CARREGAR HTML
 # ============================================
@@ -269,7 +293,11 @@ def load_html():
 # SIDEBAR - NAVEGAÇÃO
 # ============================================
 with st.sidebar:
-    st.image("https://via.placeholder.com/150x50/3b82f6/ffffff?text=Rasther+V29", use_column_width=True)
+    st.markdown("""
+    <div style="text-align: center; padding: 10px;">
+        <h1 style="color: #3b82f6;">🔧 Rasther V29</h1>
+    </div>
+    """, unsafe_allow_html=True)
     
     st.markdown("---")
     
@@ -283,7 +311,7 @@ with st.sidebar:
     st.markdown("---")
     
     # Status rápido
-    st.markdown("### Status do Sistema")
+    st.markdown("### 📊 Status do Sistema")
     col1, col2 = st.columns(2)
     with col1:
         st.metric("Dispositivos", f"{st.session_state.stats['dispositivos_online']}/{st.session_state.stats['dispositivos_total']}")
@@ -291,7 +319,7 @@ with st.sidebar:
         st.metric("Licenças", st.session_state.stats['licencas_ativas'])
     
     # Últimos logs
-    st.markdown("### Últimos Logs")
+    st.markdown("### 📋 Últimos Logs")
     for log in st.session_state.logs[:3]:
         st.caption(f"🕐 {log['timestamp'].strftime('%H:%M:%S')}")
         st.caption(f"{log['mensagem']}")
@@ -331,7 +359,7 @@ if menu_option == "📊 Dashboard":
             "+5 esta semana"
         )
     
-    # Gráficos
+    # Gráficos sem Plotly
     col1, col2 = st.columns(2)
     
     with col1:
@@ -339,19 +367,13 @@ if menu_option == "📊 Dashboard":
         # Dados simulados
         dates = pd.date_range(end=datetime.now(), periods=30, freq='D')
         updates = np.random.randint(5, 30, size=30)
-        df = pd.DataFrame({"data": dates, "atualizacoes": updates})
-        
-        fig = px.line(df, x='data', y='atualizacoes', title='Atualizações nos últimos 30 dias')
-        fig.update_layout(height=300)
-        st.plotly_chart(fig, use_container_width=True)
+        create_line_chart(dates, updates, "Atualizações nos últimos 30 dias")
     
     with col2:
         st.subheader("Dispositivos por Versão")
         versions = ['v2.1.5', 'v2.1.3', 'v2.0.9', 'v2.0.5']
         counts = [15, 42, 23, 8]
-        fig = px.pie(values=counts, names=versions, title='Distribuição de Versões')
-        fig.update_layout(height=300)
-        st.plotly_chart(fig, use_container_width=True)
+        create_bar_chart(counts, versions, "Distribuição de Versões")
     
     # Tabela de dispositivos
     st.subheader("📱 Dispositivos Recentes")
@@ -556,56 +578,42 @@ elif menu_option == "📈 Relatórios":
     tab1, tab2, tab3 = st.tabs(["📊 Uso", "📥 Downloads", "📱 Dispositivos"])
     
     with tab1:
-        # Gráfico de uso
+        st.subheader("Atividades no Período")
+        # Dados simulados
         dates = pd.date_range(start=data_inicio, end=data_fim, freq='D')
         updates = np.random.randint(5, 30, size=len(dates))
-        devices = np.random.randint(10, 50, size=len(dates))
         
-        df = pd.DataFrame({
-            "data": dates,
-            "atualizacoes": updates,
-            "dispositivos": devices
+        chart_data = pd.DataFrame({
+            'data': dates,
+            'atualizacoes': updates
         })
-        
-        fig = go.Figure()
-        fig.add_trace(go.Scatter(x=dates, y=updates, mode='lines+markers', name='Atualizações'))
-        fig.add_trace(go.Bar(x=dates, y=devices, name='Dispositivos Ativos', yaxis='y2'))
-        
-        fig.update_layout(
-            title='Atividades no Período',
-            yaxis=dict(title='Atualizações'),
-            yaxis2=dict(title='Dispositivos', overlaying='y', side='right'),
-            height=400
-        )
-        
-        st.plotly_chart(fig, use_container_width=True)
+        st.line_chart(chart_data.set_index('data'))
     
     with tab2:
+        st.subheader("Downloads por Versão")
         # Downloads por versão
         versoes = ['v2.1.5', 'v2.1.3', 'v2.0.9', 'v2.0.5']
         downloads = [1250, 3500, 850, 420]
         
-        fig = px.bar(
-            x=versoes, 
-            y=downloads,
-            title='Downloads por Versão',
-            labels={'x': 'Versão', 'y': 'Downloads'}
-        )
-        st.plotly_chart(fig, use_container_width=True)
+        chart_data = pd.DataFrame({
+            'versao': versoes,
+            'downloads': downloads
+        })
+        st.bar_chart(chart_data.set_index('versao'))
     
     with tab3:
+        st.subheader("Dispositivos por Cliente")
         # Dispositivos por cliente
         clientes = [d['cliente'] for d in st.session_state.devices]
         dispositivos_por_cliente = {}
         for cliente in clientes:
             dispositivos_por_cliente[cliente] = dispositivos_por_cliente.get(cliente, 0) + 1
         
-        fig = px.pie(
-            values=list(dispositivos_por_cliente.values()),
-            names=list(dispositivos_por_cliente.keys()),
-            title='Dispositivos por Cliente'
-        )
-        st.plotly_chart(fig, use_container_width=True)
+        df_clientes = pd.DataFrame([
+            {"cliente": k, "dispositivos": v} 
+            for k, v in dispositivos_por_cliente.items()
+        ])
+        st.bar_chart(df_clientes.set_index('cliente'))
     
     # Botão para exportar
     if st.button("📥 Exportar Relatório", type="primary"):
@@ -643,6 +651,7 @@ elif menu_option == "⚙️ Configurações":
         
         if st.button("💾 Salvar Configurações", type="primary"):
             st.success("Configurações salvas com sucesso!")
+            add_log("Configurações gerais atualizadas", "success")
     
     with tab2:
         st.subheader("Configurações da API")
@@ -668,6 +677,7 @@ elif menu_option == "⚙️ Configurações":
         
         if st.button("🔄 Regenerar Token"):
             st.warning("Novo token gerado!")
+            add_log("Token de API regenerado", "warning")
     
     with tab3:
         st.subheader("Gerenciar Usuários")
@@ -684,14 +694,15 @@ elif menu_option == "⚙️ Configurações":
         with st.expander("➕ Adicionar Usuário"):
             col1, col2 = st.columns(2)
             with col1:
-                st.text_input("Nome")
-                st.text_input("Email")
+                nome = st.text_input("Nome")
+                email = st.text_input("Email")
             with col2:
-                st.selectbox("Tipo", ["admin", "suporte", "cliente"])
-                st.text_input("Senha", type="password")
+                tipo = st.selectbox("Tipo", ["admin", "suporte", "cliente"])
+                senha = st.text_input("Senha", type="password")
             
             if st.button("✅ Criar Usuário"):
-                st.success("Usuário criado com sucesso!")
+                st.success(f"Usuário {nome} criado com sucesso!")
+                add_log(f"Novo usuário criado: {email}", "success")
 
 # ============================================
 # RODAPÉ
