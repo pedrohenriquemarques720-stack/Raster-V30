@@ -1,15 +1,14 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-import json
-import hashlib
-import time
-import random
 from datetime import datetime, timedelta
-import base64
+import random
+import json
+import time
+import hashlib
 
 # ============================================
-# VERIFICAÇÃO DE BIBLIOTECAS
+# VERIFICAÇÃO DE BIBLIOTECAS OPCIONAIS
 # ============================================
 try:
     import plotly.graph_objects as go
@@ -17,7 +16,22 @@ try:
     PLOTLY_AVAILABLE = True
 except ImportError:
     PLOTLY_AVAILABLE = False
-    st.warning("⚠️ Plotly não disponível. Usando gráficos alternativos.")
+
+try:
+    import base64
+    BASE64_AVAILABLE = True
+except ImportError:
+    BASE64_AVAILABLE = False
+    # Implementação fallback do base64
+    import binascii
+    
+    def base64_encode(data):
+        if isinstance(data, str):
+            data = data.encode()
+        return binascii.b2a_base64(data).decode().strip()
+    
+    def base64_decode(data):
+        return binascii.a2b_base64(data).decode()
 
 # ============================================
 # CONFIGURAÇÃO DA PÁGINA
@@ -30,12 +44,18 @@ st.set_page_config(
 )
 
 # ============================================
-# ESTADO DA SESSÃO (Simula banco de dados)
+# INICIALIZAÇÃO DO ESTADO DA SESSÃO
 # ============================================
-if 'initialized' not in st.session_state:
-    st.session_state.initialized = True
+def init_session_state():
+    """Inicializa todas as variáveis de estado da sessão"""
     
-    # Dispositivos
+    if 'initialized' in st.session_state:
+        return
+    
+    st.session_state.initialized = True
+    st.session_state.page = "dashboard"
+    
+    # Dispositivos simulados
     st.session_state.devices = [
         {
             "id": "DEV-001",
@@ -75,7 +95,7 @@ if 'initialized' not in st.session_state:
         }
     ]
     
-    # Licenças
+    # Licenças simuladas
     st.session_state.licenses = [
         {
             "id": "LIC-2024-001",
@@ -84,7 +104,6 @@ if 'initialized' not in st.session_state:
             "data_ativacao": "2024-01-15",
             "data_expiracao": "2025-12-31",
             "status": "ativa",
-            "features": ["updates", "premium", "suporte", "diagnostico"],
             "dispositivos": 1,
             "max_dispositivos": 3
         },
@@ -95,7 +114,6 @@ if 'initialized' not in st.session_state:
             "data_ativacao": "2024-02-01",
             "data_expiracao": "2024-12-31",
             "status": "ativa",
-            "features": ["updates", "suporte_basico"],
             "dispositivos": 1,
             "max_dispositivos": 1
         },
@@ -106,7 +124,6 @@ if 'initialized' not in st.session_state:
             "data_ativacao": "2024-01-10",
             "data_expiracao": "2025-06-30",
             "status": "ativa",
-            "features": ["updates", "premium", "suporte_24h", "api", "multiusuario"],
             "dispositivos": 3,
             "max_dispositivos": 10
         }
@@ -161,19 +178,6 @@ if 'initialized' not in st.session_state:
         }
     }
     
-    # Histórico de atualizações
-    st.session_state.update_history = []
-    for i in range(20):
-        date = datetime.now() - timedelta(days=random.randint(0, 30))
-        st.session_state.update_history.append({
-            "data": date,
-            "dispositivo": random.choice(st.session_state.devices)["serial"],
-            "versao_anterior": f"v2.1.{random.randint(0,3)}",
-            "versao_nova": f"v2.1.{random.randint(3,5)}",
-            "status": random.choice(["sucesso", "sucesso", "sucesso", "falha"]),
-            "duracao": random.randint(60, 180)
-        })
-    
     # Estatísticas
     st.session_state.stats = {
         "total_updates": 4850,
@@ -189,9 +193,10 @@ if 'initialized' not in st.session_state:
         {"timestamp": datetime.now() - timedelta(minutes=5), "mensagem": "Sistema iniciado", "tipo": "info"},
         {"timestamp": datetime.now() - timedelta(minutes=4), "mensagem": "Backup automático concluído", "tipo": "success"},
         {"timestamp": datetime.now() - timedelta(minutes=3), "mensagem": "Nova versão de firmware disponível", "tipo": "info"},
-        {"timestamp": datetime.now() - timedelta(minutes=2), "mensagem": "Licença LIC-2024-001 renovada", "tipo": "success"},
-        {"timestamp": datetime.now() - timedelta(minutes=1), "mensagem": "Dispositivo DEV-001 conectado", "tipo": "info"},
     ]
+
+# Inicializar
+init_session_state()
 
 # ============================================
 # FUNÇÕES AUXILIARES
@@ -209,11 +214,10 @@ def get_status_color(status):
     colors = {
         "online": "green",
         "offline": "gray",
-        "ativo": "green",
-        "inativo": "red",
+        "ativa": "green",
+        "inativa": "red",
         "sucesso": "green",
-        "falha": "red",
-        "pendente": "orange"
+        "falha": "red"
     }
     return colors.get(status, "blue")
 
@@ -224,174 +228,129 @@ def add_log(mensagem, tipo="info"):
         "mensagem": mensagem,
         "tipo": tipo
     })
-    # Manter apenas últimos 100 logs
-    if len(st.session_state.logs) > 100:
+    if len(st.session_state.logs) > 50:
         st.session_state.logs.pop()
 
-def create_bar_chart(data, labels, title):
-    """Cria gráfico de barras sem plotly"""
-    chart_data = pd.DataFrame({
-        'labels': labels,
-        'values': data
-    })
-    st.bar_chart(chart_data.set_index('labels'))
-
-def create_line_chart(dates, values, title):
-    """Cria gráfico de linhas sem plotly"""
-    chart_data = pd.DataFrame({
-        'date': dates,
-        'value': values
-    })
-    st.line_chart(chart_data.set_index('date'))
-
 # ============================================
-# CARREGAR HTML
-# ============================================
-def load_html():
-    """Carrega o arquivo HTML e injeta dados do Streamlit"""
-    try:
-        with open('index.html', 'r', encoding='utf-8') as f:
-            html_content = f.read()
-            
-        # Injetar dados do Streamlit no HTML
-        html_content = html_content.replace(
-            '</body>',
-            f'''
-            <script>
-                // Dados injetados pelo Streamlit
-                window.streamlitData = {json.dumps({
-                    "devices": st.session_state.devices,
-                    "licenses": st.session_state.licenses,
-                    "stats": st.session_state.stats,
-                    "logs": [
-                        {{
-                            "time": log["timestamp"].strftime("%H:%M:%S"),
-                            "message": log["mensagem"],
-                            "type": log["tipo"]
-                        }} for log in st.session_state.logs[:10]
-                    ]
-                })};
-                
-                // Função para comunicação com Streamlit
-                function sendToStreamlit(data) {{
-                    if (window.Streamlit) {{
-                        window.Streamlit.setComponentValue(data);
-                    }}
-                }}
-            </script>
-            </body>
-            ''',
-            html_content
-        )
-        
-        return html_content
-    except FileNotFoundError:
-        st.error("Arquivo index.html não encontrado!")
-        return None
-
-# ============================================
-# SIDEBAR - NAVEGAÇÃO
+# SIDEBAR
 # ============================================
 with st.sidebar:
     st.markdown("""
     <div style="text-align: center; padding: 10px;">
-        <h1 style="color: #3b82f6;">🔧 Rasther V29</h1>
+        <h1 style="color: #3b82f6; font-size: 24px;">🔧 Rasther V29</h1>
+        <p style="color: #94a3b8; font-size: 12px;">Gestão de Firmware</p>
     </div>
     """, unsafe_allow_html=True)
     
     st.markdown("---")
     
     # Menu de navegação
-    menu_option = st.radio(
-        "Navegação",
-        ["📊 Dashboard", "📱 Dispositivos", "🔧 Firmware", "🔑 Licenças", "📈 Relatórios", "⚙️ Configurações"],
-        index=0
-    )
+    pages = {
+        "📊 Dashboard": "dashboard",
+        "📱 Dispositivos": "devices",
+        "🔧 Firmware": "firmware",
+        "🔑 Licenças": "licenses",
+        "📈 Relatórios": "reports",
+        "⚙️ Configurações": "settings"
+    }
+    
+    for page_name, page_key in pages.items():
+        if st.button(
+            page_name,
+            key=f"btn_{page_key}",
+            use_container_width=True,
+            type="primary" if st.session_state.page == page_key else "secondary"
+        ):
+            st.session_state.page = page_key
+            st.rerun()
     
     st.markdown("---")
     
     # Status rápido
-    st.markdown("### 📊 Status do Sistema")
+    st.markdown("### 📊 Status")
     col1, col2 = st.columns(2)
     with col1:
-        st.metric("Dispositivos", f"{st.session_state.stats['dispositivos_online']}/{st.session_state.stats['dispositivos_total']}")
+        st.metric(
+            "Dispositivos",
+            f"{st.session_state.stats['dispositivos_online']}/{st.session_state.stats['dispositivos_total']}"
+        )
     with col2:
         st.metric("Licenças", st.session_state.stats['licencas_ativas'])
     
     # Últimos logs
-    st.markdown("### 📋 Últimos Logs")
-    for log in st.session_state.logs[:3]:
-        st.caption(f"🕐 {log['timestamp'].strftime('%H:%M:%S')}")
-        st.caption(f"{log['mensagem']}")
-        st.markdown("---")
+    with st.expander("📋 Logs Recentes"):
+        for log in st.session_state.logs[:5]:
+            st.caption(f"🕐 {log['timestamp'].strftime('%H:%M')}")
+            st.caption(log['mensagem'])
 
 # ============================================
-# CONTEÚDO PRINCIPAL
+# PÁGINA: DASHBOARD
 # ============================================
-
-if menu_option == "📊 Dashboard":
-    st.title("📊 Dashboard Rasther V29")
+def show_dashboard():
+    st.title("📊 Dashboard")
     
-    # Métricas principais
+    # Métricas
     col1, col2, col3, col4 = st.columns(4)
     with col1:
         st.metric(
-            "Total de Atualizações",
+            "Total Atualizações",
             f"{st.session_state.stats['total_updates']:,}",
             f"+{st.session_state.stats['updates_hoje']} hoje"
         )
     with col2:
         st.metric(
             "Dispositivos Ativos",
-            st.session_state.stats['dispositivos_online'],
-            f"{st.session_state.stats['dispositivos_online'] - st.session_state.stats['dispositivos_total']} vs total"
+            st.session_state.stats['dispositivos_online']
         )
     with col3:
         st.metric(
             "Licenças Ativas",
-            st.session_state.stats['licencas_ativas'],
-            "100%"
+            st.session_state.stats['licencas_ativas']
         )
     with col4:
         st.metric(
             "Usuários Ativos",
-            st.session_state.stats['usuarios_ativos'],
-            "+5 esta semana"
+            st.session_state.stats['usuarios_ativos']
         )
     
-    # Gráficos sem Plotly
+    # Gráficos simples
     col1, col2 = st.columns(2)
     
     with col1:
-        st.subheader("Atualizações por Dia")
-        # Dados simulados
-        dates = pd.date_range(end=datetime.now(), periods=30, freq='D')
-        updates = np.random.randint(5, 30, size=30)
-        create_line_chart(dates, updates, "Atualizações nos últimos 30 dias")
+        st.subheader("Atualizações Recentes")
+        dates = pd.date_range(end=datetime.now(), periods=7, freq='D')
+        updates = np.random.randint(10, 50, size=7)
+        chart_data = pd.DataFrame({
+            'data': dates.strftime('%d/%m'),
+            'atualizacoes': updates
+        })
+        st.bar_chart(chart_data.set_index('data'))
     
     with col2:
         st.subheader("Dispositivos por Versão")
-        versions = ['v2.1.5', 'v2.1.3', 'v2.0.9', 'v2.0.5']
-        counts = [15, 42, 23, 8]
-        create_bar_chart(counts, versions, "Distribuição de Versões")
+        versions = ['v2.1.5', 'v2.1.3', 'v2.0.9']
+        counts = [15, 42, 23]
+        chart_data = pd.DataFrame({
+            'versao': versions,
+            'quantidade': counts
+        })
+        st.bar_chart(chart_data.set_index('versao'))
     
     # Tabela de dispositivos
     st.subheader("📱 Dispositivos Recentes")
-    df_devices = pd.DataFrame(st.session_state.devices)
-    df_devices['ultimo_acesso'] = pd.to_datetime(df_devices['ultimo_acesso']).dt.strftime('%d/%m/%Y %H:%M')
+    df = pd.DataFrame(st.session_state.devices)
+    df['ultimo_acesso'] = pd.to_datetime(df['ultimo_acesso']).dt.strftime('%d/%m/%Y %H:%M')
     st.dataframe(
-        df_devices[['nome', 'serial', 'versao', 'ultimo_acesso', 'status']],
+        df[['nome', 'serial', 'versao', 'ultimo_acesso', 'status']],
         use_container_width=True,
         hide_index=True
     )
-    
-    # Logs recentes
-    with st.expander("📋 Logs do Sistema", expanded=False):
-        for log in st.session_state.logs:
-            st.text(f"[{log['timestamp'].strftime('%H:%M:%S')}] {log['mensagem']}")
 
-elif menu_option == "📱 Dispositivos":
-    st.title("📱 Gerenciar Dispositivos")
+# ============================================
+# PÁGINA: DISPOSITIVOS
+# ============================================
+def show_devices():
+    st.title("📱 Dispositivos")
     
     # Filtros
     col1, col2, col3 = st.columns(3)
@@ -402,10 +361,9 @@ elif menu_option == "📱 Dispositivos":
     with col3:
         search = st.text_input("Buscar", placeholder="Serial ou cliente...")
     
-    # Tabela de dispositivos
+    # Aplicar filtros
     df = pd.DataFrame(st.session_state.devices)
     
-    # Aplicar filtros
     if status_filter != "Todos":
         df = df[df['status'] == status_filter.lower()]
     if version_filter != "Todas":
@@ -414,312 +372,214 @@ elif menu_option == "📱 Dispositivos":
         df = df[df['serial'].str.contains(search, case=False) | 
                 df['cliente'].str.contains(search, case=False)]
     
-    # Mostrar tabela com ações
-    for idx, device in df.iterrows():
+    # Lista de dispositivos
+    for _, device in df.iterrows():
         with st.container():
-            col1, col2, col3, col4, col5, col6 = st.columns([2, 2, 1, 1, 1, 1])
-            with col1:
+            cols = st.columns([2, 2, 1, 1, 1])
+            with cols[0]:
                 st.write(f"**{device['nome']}**")
                 st.caption(device['serial'])
-            with col2:
+            with cols[1]:
                 st.write(f"Cliente: {device['cliente']}")
-                st.caption(f"Último acesso: {pd.to_datetime(device['ultimo_acesso']).strftime('%d/%m/%Y %H:%M')}")
-            with col3:
+                st.caption(f"Último: {pd.to_datetime(device['ultimo_acesso']).strftime('%d/%m/%Y')}")
+            with cols[2]:
                 st.write(f"Versão: {device['versao']}")
-                st.caption(f"Hardware: {device['hardware']}")
-            with col4:
+            with cols[3]:
                 status_color = get_status_color(device['status'])
-                st.markdown(f"Status: :{status_color}[{device['status'].upper()}]")
-                if device['status'] == 'online':
-                    st.caption(f"Bateria: {device['bateria']}% | Sinal: {device['sinal']}%")
-            with col5:
-                if st.button("📊", key=f"stats_{device['id']}"):
-                    st.info(f"Detalhes do dispositivo {device['serial']}")
-            with col6:
-                if st.button("⚡", key=f"update_{device['id']}"):
-                    st.warning(f"Iniciar atualização do dispositivo {device['serial']}?")
+                st.markdown(f":{status_color}[{device['status'].upper()}]")
+            with cols[4]:
+                if st.button("📊", key=f"btn_{device['id']}"):
+                    st.info(f"Detalhes de {device['serial']}")
             st.divider()
 
-elif menu_option == "🔧 Firmware":
-    st.title("🔧 Gerenciar Firmware")
+# ============================================
+# PÁGINA: FIRMWARE
+# ============================================
+def show_firmware():
+    st.title("🔧 Firmware")
     
-    tab1, tab2, tab3 = st.tabs(["📦 Versões", "📤 Distribuir", "📋 Histórico"])
+    tab1, tab2 = st.tabs(["📦 Versões", "📤 Nova Versão"])
     
     with tab1:
-        st.subheader("Versões Disponíveis")
-        
         for modelo, data in st.session_state.firmwares.items():
             with st.expander(f"📱 {data['modelo']}", expanded=True):
                 for versao in data['versoes']:
-                    col1, col2, col3 = st.columns([1, 3, 1])
-                    with col1:
+                    cols = st.columns([1, 3])
+                    with cols[0]:
                         st.markdown(f"### {versao['versao']}")
                         if versao['critica']:
                             st.markdown("🔴 **CRÍTICA**")
-                    with col2:
+                    with cols[1]:
                         st.write(f"📅 {versao['data']}")
                         st.write(f"📦 {format_bytes(versao['tamanho'])}")
                         st.write(f"📥 {versao['downloads']} downloads")
                         with st.expander("📋 Changelog"):
                             for item in versao['changelog']:
                                 st.write(f"• {item}")
-                    with col3:
-                        if st.button("📥 Baixar", key=f"download_{modelo}_{versao['versao']}"):
-                            st.success(f"Download de {versao['versao']} iniciado!")
                     st.divider()
     
     with tab2:
-        st.subheader("Distribuir Nova Versão")
+        st.subheader("Publicar Nova Versão")
         
         col1, col2 = st.columns(2)
         with col1:
             versao = st.text_input("Versão", value="v2.1.6")
-            data_lancamento = st.date_input("Data de Lançamento")
-            arquivo = st.file_uploader("Arquivo do Firmware", type=['bin'])
-            
+            data = st.date_input("Data de Lançamento")
         with col2:
             critica = st.checkbox("Atualização Crítica")
-            changelog = st.text_area(
-                "Changelog",
-                height=150,
-                value="• Correções de segurança\n• Melhorias de performance\n• Novos protocolos"
-            )
+            arquivo = st.file_uploader("Arquivo do Firmware", type=['bin'])
         
-        if st.button("📤 Publicar Nova Versão", type="primary"):
-            st.success("Nova versão publicada com sucesso!")
+        changelog = st.text_area(
+            "Changelog",
+            height=150,
+            value="• Correções de segurança\n• Melhorias de performance"
+        )
+        
+        if st.button("📤 Publicar", type="primary"):
+            st.success("Nova versão publicada!")
             add_log(f"Nova versão {versao} publicada", "success")
-    
-    with tab3:
-        st.subheader("Histórico de Atualizações")
-        
-        df_history = pd.DataFrame(st.session_state.update_history)
-        df_history['data'] = pd.to_datetime(df_history['data']).dt.strftime('%d/%m/%Y %H:%M')
-        
-        # Estatísticas
-        total = len(df_history)
-        sucessos = len(df_history[df_history['status'] == 'sucesso'])
-        falhas = len(df_history[df_history['status'] == 'falha'])
-        
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            st.metric("Total", total)
-        with col2:
-            st.metric("Sucessos", sucessos, f"{(sucessos/total*100):.1f}%")
-        with col3:
-            st.metric("Falhas", falhas, f"{(falhas/total*100):.1f}%")
-        
-        st.dataframe(df_history, use_container_width=True, hide_index=True)
 
-elif menu_option == "🔑 Licenças":
-    st.title("🔑 Gerenciar Licenças")
+# ============================================
+# PÁGINA: LICENÇAS
+# ============================================
+def show_licenses():
+    st.title("🔑 Licenças")
     
-    # Estatísticas de licenças
-    total_licencas = len(st.session_state.licenses)
+    # Estatísticas
+    total = len(st.session_state.licenses)
     ativas = len([l for l in st.session_state.licenses if l['status'] == 'ativa'])
     
-    col1, col2, col3, col4 = st.columns(4)
+    col1, col2, col3 = st.columns(3)
     with col1:
-        st.metric("Total de Licenças", total_licencas)
+        st.metric("Total", total)
     with col2:
-        st.metric("Ativas", ativas, f"{ativas/total_licencas*100:.0f}%")
+        st.metric("Ativas", ativas)
     with col3:
-        st.metric("A vencer (30 dias)", 2)
-    with col4:
-        st.metric("Expiradas", 0)
+        st.metric("Taxa", f"{ativas/total*100:.0f}%")
     
     # Lista de licenças
     st.subheader("Licenças Ativas")
     
-    for license in st.session_state.licenses:
-        with st.container():
-            col1, col2, col3, col4, col5 = st.columns([2, 2, 1, 1, 1])
-            with col1:
-                st.write(f"**{license['cliente']}**")
-                st.caption(license['id'])
-            with col2:
-                st.write(f"Tipo: {license['tipo']}")
-                exp_date = datetime.strptime(license['data_expiracao'], '%Y-%m-%d')
-                days_left = (exp_date - datetime.now()).days
-                st.caption(f"Expira em {days_left} dias")
-            with col3:
-                st.write(f"Dispositivos: {license['dispositivos']}/{license['max_dispositivos']}")
-            with col4:
-                status_color = get_status_color(license['status'])
-                st.markdown(f":{status_color}[{license['status'].upper()}]")
-            with col5:
-                if st.button("🔄 Renovar", key=f"renew_{license['id']}"):
-                    st.success(f"Licença {license['id']} renovada com sucesso!")
-            st.divider()
+    for lic in st.session_state.licenses:
+        cols = st.columns([2, 1, 1, 1])
+        with cols[0]:
+            st.write(f"**{lic['cliente']}**")
+            st.caption(lic['id'])
+        with cols[1]:
+            st.write(f"Tipo: {lic['tipo']}")
+        with cols[2]:
+            exp_date = datetime.strptime(lic['data_expiracao'], '%Y-%m-%d')
+            days = (exp_date - datetime.now()).days
+            st.write(f"Expira: {days} dias")
+        with cols[3]:
+            status_color = get_status_color(lic['status'])
+            st.markdown(f":{status_color}[{lic['status'].upper()}]")
+        st.divider()
     
-    # Ativar nova licença
-    with st.expander("➕ Ativar Nova Licença", expanded=False):
+    # Nova licença
+    with st.expander("➕ Nova Licença"):
         col1, col2 = st.columns(2)
         with col1:
-            novo_cliente = st.text_input("Cliente")
-            nova_licenca = st.text_input("Código da Licença")
+            cliente = st.text_input("Cliente")
+            codigo = st.text_input("Código")
         with col2:
-            novo_tipo = st.selectbox("Tipo", ["Básico", "Profissional", "Premium", "Enterprise"])
-            nova_expiracao = st.date_input("Data de Expiração", value=datetime.now() + timedelta(days=365))
+            tipo = st.selectbox("Tipo", ["Básico", "Profissional", "Premium"])
+            expiracao = st.date_input("Expiração")
         
-        if st.button("✅ Ativar Licença", type="primary"):
-            st.success(f"Licença ativada para {novo_cliente}!")
+        if st.button("✅ Ativar"):
+            st.success(f"Licença ativada para {cliente}")
 
-elif menu_option == "📈 Relatórios":
-    st.title("📈 Relatórios e Analytics")
+# ============================================
+# PÁGINA: RELATÓRIOS
+# ============================================
+def show_reports():
+    st.title("📈 Relatórios")
     
     # Período
     col1, col2 = st.columns(2)
     with col1:
-        data_inicio = st.date_input("Data Início", value=datetime.now() - timedelta(days=30))
+        inicio = st.date_input("Início", datetime.now() - timedelta(days=30))
     with col2:
-        data_fim = st.date_input("Data Fim", value=datetime.now())
+        fim = st.date_input("Fim", datetime.now())
     
     # Gráficos
-    tab1, tab2, tab3 = st.tabs(["📊 Uso", "📥 Downloads", "📱 Dispositivos"])
+    tab1, tab2 = st.tabs(["📊 Uso", "📥 Downloads"])
     
     with tab1:
-        st.subheader("Atividades no Período")
-        # Dados simulados
-        dates = pd.date_range(start=data_inicio, end=data_fim, freq='D')
-        updates = np.random.randint(5, 30, size=len(dates))
-        
-        chart_data = pd.DataFrame({
+        st.subheader("Atividades")
+        dates = pd.date_range(start=inicio, end=fim, freq='D')
+        data = pd.DataFrame({
             'data': dates,
-            'atualizacoes': updates
+            'atualizacoes': np.random.randint(5, 30, len(dates)),
+            'dispositivos': np.random.randint(10, 50, len(dates))
         })
-        st.line_chart(chart_data.set_index('data'))
+        st.line_chart(data.set_index('data'))
     
     with tab2:
         st.subheader("Downloads por Versão")
-        # Downloads por versão
-        versoes = ['v2.1.5', 'v2.1.3', 'v2.0.9', 'v2.0.5']
-        downloads = [1250, 3500, 850, 420]
-        
-        chart_data = pd.DataFrame({
-            'versao': versoes,
-            'downloads': downloads
+        downloads = pd.DataFrame({
+            'versao': ['v2.1.5', 'v2.1.3', 'v2.0.9'],
+            'downloads': [1250, 3500, 850]
         })
-        st.bar_chart(chart_data.set_index('versao'))
+        st.bar_chart(downloads.set_index('versao'))
     
-    with tab3:
-        st.subheader("Dispositivos por Cliente")
-        # Dispositivos por cliente
-        clientes = [d['cliente'] for d in st.session_state.devices]
-        dispositivos_por_cliente = {}
-        for cliente in clientes:
-            dispositivos_por_cliente[cliente] = dispositivos_por_cliente.get(cliente, 0) + 1
-        
-        df_clientes = pd.DataFrame([
-            {"cliente": k, "dispositivos": v} 
-            for k, v in dispositivos_por_cliente.items()
-        ])
-        st.bar_chart(df_clientes.set_index('cliente'))
-    
-    # Botão para exportar
-    if st.button("📥 Exportar Relatório", type="primary"):
-        st.success("Relatório exportado com sucesso!")
+    if st.button("📥 Exportar PDF"):
+        st.success("Relatório gerado!")
 
-elif menu_option == "⚙️ Configurações":
-    st.title("⚙️ Configurações do Sistema")
+# ============================================
+# PÁGINA: CONFIGURAÇÕES
+# ============================================
+def show_settings():
+    st.title("⚙️ Configurações")
     
-    tab1, tab2, tab3 = st.tabs(["🔧 Geral", "🔌 API", "👥 Usuários"])
+    tab1, tab2 = st.tabs(["🔧 Geral", "👥 Usuários"])
     
     with tab1:
-        st.subheader("Configurações Gerais")
-        
         col1, col2 = st.columns(2)
         with col1:
-            st.text_input("Nome da Empresa", value="Rasther Diagnostics")
-            st.text_input("Email de Suporte", value="suporte@rasther.com")
-            st.number_input("Timeout de Conexão (s)", value=30)
-            
+            st.text_input("Empresa", "Rasther Diagnostics")
+            st.text_input("Email", "suporte@rasther.com")
         with col2:
-            st.text_input("URL do Servidor", value="https://api.rasther.com")
-            st.text_input("Chave de API", value="••••••••••••••••", type="password")
-            st.checkbox("Notificações por Email", value=True)
+            st.text_input("Servidor", "https://api.rasther.com")
+            st.text_input("API Key", "••••••••", type="password")
         
-        st.divider()
+        st.checkbox("Backup Automático", True)
+        st.selectbox("Frequência", ["Diário", "Semanal", "Mensal"])
         
-        st.subheader("Configurações de Backup")
-        col1, col2 = st.columns(2)
-        with col1:
-            st.checkbox("Backup Automático", value=True)
-            st.selectbox("Frequência", ["Diário", "Semanal", "Mensal"])
-        with col2:
-            st.number_input("Reter backups (dias)", value=30)
-            st.text_input("Pasta de Backup", value="/backups/rasther")
-        
-        if st.button("💾 Salvar Configurações", type="primary"):
-            st.success("Configurações salvas com sucesso!")
-            add_log("Configurações gerais atualizadas", "success")
+        if st.button("💾 Salvar"):
+            st.success("Configurações salvas!")
+            add_log("Configurações atualizadas", "success")
     
     with tab2:
-        st.subheader("Configurações da API")
-        
-        st.code("""
-        # Endpoints Disponíveis
-        GET    /api/v1/status
-        GET    /api/v1/devices
-        POST   /api/v1/devices/register
-        GET    /api/v1/firmware/check/{model}
-        GET    /api/v1/firmware/download/{model}/{version}
-        POST   /api/v1/license/validate
-        POST   /api/v1/license/activate
-        """)
-        
-        st.info("Documentação completa da API disponível em /docs")
-        
-        st.subheader("Tokens de Acesso")
-        st.code("""
-        Token API: rasther_live_xxxxxxxxxxxxxx
-        Secret:    xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
-        """)
-        
-        if st.button("🔄 Regenerar Token"):
-            st.warning("Novo token gerado!")
-            add_log("Token de API regenerado", "warning")
-    
-    with tab3:
-        st.subheader("Gerenciar Usuários")
-        
-        users = [
-            {"nome": "Admin", "email": "admin@rasther.com", "tipo": "admin", "status": "ativo"},
-            {"nome": "Suporte", "email": "suporte@rasther.com", "tipo": "suporte", "status": "ativo"},
-            {"nome": "Cliente Teste", "email": "cliente@teste.com", "tipo": "cliente", "status": "ativo"},
-        ]
-        
-        df_users = pd.DataFrame(users)
-        st.dataframe(df_users, use_container_width=True, hide_index=True)
-        
-        with st.expander("➕ Adicionar Usuário"):
-            col1, col2 = st.columns(2)
-            with col1:
-                nome = st.text_input("Nome")
-                email = st.text_input("Email")
-            with col2:
-                tipo = st.selectbox("Tipo", ["admin", "suporte", "cliente"])
-                senha = st.text_input("Senha", type="password")
-            
-            if st.button("✅ Criar Usuário"):
-                st.success(f"Usuário {nome} criado com sucesso!")
-                add_log(f"Novo usuário criado: {email}", "success")
+        users = pd.DataFrame([
+            {"nome": "Admin", "email": "admin@rasther.com", "tipo": "admin"},
+            {"nome": "Suporte", "email": "suporte@rasther.com", "tipo": "suporte"},
+        ])
+        st.dataframe(users, use_container_width=True)
+
+# ============================================
+# ROTEAMENTO
+# ============================================
+pages = {
+    "dashboard": show_dashboard,
+    "devices": show_devices,
+    "firmware": show_firmware,
+    "licenses": show_licenses,
+    "reports": show_reports,
+    "settings": show_settings
+}
+
+# Executar página atual
+pages[st.session_state.page]()
 
 # ============================================
 # RODAPÉ
 # ============================================
 st.markdown("---")
-col1, col2, col3 = st.columns(3)
-with col1:
-    st.caption(f"Rasther V29 v1.0.0")
-with col2:
-    st.caption(f"Última atualização: {datetime.now().strftime('%d/%m/%Y %H:%M')}")
-with col3:
-    st.caption(f"Dispositivos: {st.session_state.stats['dispositivos_online']}/{st.session_state.stats['dispositivos_total']} online")
-
-# ============================================
-# INTEGRAÇÃO COM HTML (opcional - se quiser usar o HTML)
-# ============================================
-if st.sidebar.button("🔄 Alternar para Interface HTML"):
-    html_content = load_html()
-    if html_content:
-        st.components.v1.html(html_content, height=800, scrolling=True)
+cols = st.columns(3)
+with cols[0]:
+    st.caption("Rasther V29 v1.0.0")
+with cols[1]:
+    st.caption(f"Atualizado: {datetime.now().strftime('%d/%m/%Y %H:%M')}")
+with cols[2]:
+    st.caption("© 2024 Rasther Diagnostics")
